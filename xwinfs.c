@@ -20,6 +20,40 @@ int screen;
 
 #include "x11.c"
 
+const char *winfs_basename(const char *path)
+{
+    const char *p;
+
+    if (path == NULL)
+        return NULL;
+
+    p = strrchr(path, '/');
+    if (p != NULL)
+        return p + 1;
+    else
+        return path;
+}
+
+const char *winfs_dirname(const char *path)
+{
+    const char *pend, *pstart;
+    char *p;
+
+    if (path == NULL)
+        return NULL;
+
+    pend = strrchr(path, '/');
+    pstart = strchr(path, '/');
+    p = malloc(pend-pstart);
+    bzero(p, pend-pstart);
+    strncpy(p, pstart, pend-pstart);
+    fprintf(stderr, ">>%s<<<\n", p);
+    if (p != NULL)
+        return p + 1;
+    else
+        return path;
+}
+
 void
 eprint(const char *errstr, ...) {
     va_list ap;
@@ -30,7 +64,7 @@ eprint(const char *errstr, ...) {
     exit(EXIT_FAILURE);
 }
 
-Window valid_client(char *name);
+Window valid_client(const char *name);
 static int xwinfs_getattr(const char *path, struct stat *stbuf)
 {
     int res = 0;
@@ -44,10 +78,10 @@ static int xwinfs_getattr(const char *path, struct stat *stbuf)
         stbuf->st_nlink = 2;
     }
     else if(strncmp(path, clients_path, 7) == 0) {
-	if(valid_client(basename(path))) {
+	if(valid_client(winfs_basename(path))) {
 	    stbuf->st_mode = S_IFDIR | 0755;
 	    stbuf->st_nlink = 2;
-	} else if(valid_client(basename(dirname(path)))) {
+	} else if(valid_client(winfs_basename(winfs_dirname(path)))) {
 	    stbuf->st_mode = S_IFREG | 0444;
 	    stbuf->st_nlink = 1;
 	    stbuf->st_size = 256;
@@ -59,14 +93,14 @@ static int xwinfs_getattr(const char *path, struct stat *stbuf)
     return res;
 }
 
-Window valid_client(char *name) {
+Window valid_client(const char *name) {
     Window *list;
     Window w;
     int i;
     long unsigned int nclients;
     sscanf(name, "0x%x", (unsigned int*)&w);
 
-    list = getatom(root, atom[ClientList], &nclients);
+    list = getatom(root, atoms[ClientList], &nclients);
     for(i = 0; i <= nclients; i++) {
 	if(w == list[i])
 	    return w;
@@ -80,7 +114,7 @@ void list_clients(void *buf, fuse_fill_dir_t filler)
     int i;
     long unsigned int nclients;
     char name[10];
-    list = getatom(root, atom[ClientList], &nclients);
+    list = getatom(root, atoms[ClientList], &nclients);
     for(i = 0; i < nclients; i++) {
 	sprintf(name, "0x%x", (unsigned int)list[i]);
 	filler(buf, name, NULL, 0);
@@ -119,11 +153,11 @@ static int xwinfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 	list_clients(buf, filler);
     }
     else if(strncmp(path, clients_path, 7) == 0) {
-	if(!valid_client(basename(path)))
+	if(!valid_client(winfs_basename(path)))
 	    return -ENOENT;
 	filler(buf, ".", NULL, 0);
 	filler(buf, "..", NULL, 0);
-	list_props(buf, filler, valid_client(basename(path)));
+	list_props(buf, filler, valid_client(winfs_basename(path)));
     }
     else
 	return -ENOENT;
@@ -136,8 +170,8 @@ static int xwinfs_open(const char *path, struct fuse_file_info *fi)
     Window w;
     char title[256];
     bzero(title, 256);
-    if(strcmp(basename(path), "name") == 0)
-	 if(valid_client(basename(dirname(path))))
+    if(strcmp(winfs_basename(path), "name") == 0)
+	 if(valid_client(winfs_basename(winfs_dirname(path))))
 	     return 0;
 
     if((fi->flags & 3) != O_RDONLY)
@@ -154,12 +188,13 @@ static int xwinfs_read(const char *path, char *buf, size_t size, off_t offset,
     char title[256];
     bzero(title, 256);
     Window w;
-    if(strcmp(basename(path), "name") == 0) {
-	 w = valid_client(basename(dirname(path)));
-         if(!gettextprop(w, atom[WindowName], title, sizeof title))
-		     gettextprop(w, atom[WmName], title, sizeof title);
+    if(strcmp(winfs_basename(path), "name") == 0) {
+	 w = valid_client(winfs_basename(winfs_dirname(path)));
+         if(!gettextprop(w, atoms[WindowName], title, sizeof title))
+		     gettextprop(w, atoms[WmName], title, sizeof title);
 	 size = 256;
     }
+
     len = strlen(title);
     if (offset < len) {
         if (offset + size > len)
