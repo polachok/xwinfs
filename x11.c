@@ -3,7 +3,7 @@ enum { ClientList, ActiveWindow, WindowDesk,
       ClientListStacking, WindowOpacity, WindowType,
       WindowTypeDesk, WindowTypeDock, WindowTypeDialog, StrutPartial, ESelTags,
       WindowName, WmName, WindowState, WindowStateFs, WindowStateModal, WindowStateHidden,
-      Utf8String, TypeString, TypeWindow, TypeCardinal, TypeInteger, TypeAtom, Supported, NATOMS };
+      Utf8String, TypeString, TypeWindow, TypeCardinal, TypeInteger, TypeAtom, TypeWMState, Supported, NATOMS };
 
 Atom atoms[NATOMS];
 
@@ -37,6 +37,7 @@ char* atomnames[NATOMS][1] = {
     { "CARDINAL" },
     { "INTEGER" },
     { "ATOM" },
+    { "WM_STATE" },
     { "_NET_SUPPORTED" },
 };
 
@@ -97,6 +98,14 @@ atom2string(Window w, Atom a, int *n) {
 	    al = (Atom*)p;
             for(i = 0; i < tn && strlen(ret) < 256; i++)
                 sprintf(ret+strlen(ret), "%s ",  XGetAtomName(dpy, al[i]));
+	}
+	else if(type == atoms[TypeWMState]) {
+	    if((long)*p == NormalState)
+		sprintf(ret, "Normal");
+	    else if((long)*p == IconicState)
+		sprintf(ret, "Iconic");
+	    else if((long)*p == WithdrawnState)
+		sprintf(ret, "Withdrawn");
 	}
 	*n = strlen(ret);
 	return ret;
