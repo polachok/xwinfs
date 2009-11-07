@@ -51,6 +51,10 @@ initatoms(void) {
     }   
 }
 
+
+Bool
+gettextprop(Window w, Atom atom, char *text, unsigned int size);
+
 void*
 getatom(Window w, Atom atom, unsigned long *n) {
         int format, status;
@@ -77,7 +81,6 @@ atom2string(Window w, Atom a, int *n) {
 	Atom *al;
 	XWMHints *wmh;
 	XSizeHints *size;
-	char **s;
 	unsigned int *c;
         char *ret = malloc(256);
         bzero(ret, 256);
@@ -94,7 +97,7 @@ atom2string(Window w, Atom a, int *n) {
         else if(type == atoms[TypeWindow]) {
 	    l = (Window*)p;
             for(i = 0; i < tn; i++)
-                sprintf(ret+strlen(ret), "0x%x ", l[i]);
+                sprintf(ret+strlen(ret), "0x%x ", (unsigned int)l[i]);
 	}
         else if(type == atoms[TypeCardinal]) {
 	    c = (unsigned int*)p;
@@ -116,9 +119,9 @@ atom2string(Window w, Atom a, int *n) {
 	}
 	else if(type == atoms[TypeWMHints]) {
 	    wmh = (XWMHints*)p;
-	    sprintf(ret, "InputHint: 0x%x\nStateHint: 0x%x\nIconPixmapHint: 0x%x\n"
-		    "IconWindowHint: 0x%x\nIconMaskHint: 0x%x\nWindowGroupHint: 0x%x\n"
-		    "XUrgencyHint: 0x%x\nInput: 0x%x", wmh->flags & InputHint,
+	    sprintf(ret, "InputHint: %ld\nStateHint: %ld\nIconPixmapHint: %ld\n"
+		    "IconWindowHint: %ld\nIconMaskHint: %ld\nWindowGroupHint: %ld\n"
+		    "XUrgencyHint: %ld\nInput: %d\n", wmh->flags & InputHint,
 		    wmh->flags & StateHint, wmh->flags & IconPixmapHint, wmh->flags & IconWindowHint,
 		    wmh->flags & IconMaskHint, wmh->flags & WindowGroupHint, wmh->flags & XUrgencyHint, wmh->input);
 	}
