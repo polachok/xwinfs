@@ -31,7 +31,7 @@ eprint(const char *errstr, ...) {
 }
 
 Window valid_client(char *name);
-static int hello_getattr(const char *path, struct stat *stbuf)
+static int xwinfs_getattr(const char *path, struct stat *stbuf)
 {
     int res = 0;
     memset(stbuf, 0, sizeof(struct stat));
@@ -102,7 +102,7 @@ void list_props(void *buf, fuse_fill_dir_t filler, Window w)
     }
 }
 
-static int hello_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
+static int xwinfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
                          off_t offset, struct fuse_file_info *fi)
 {
     (void) offset;
@@ -131,7 +131,7 @@ static int hello_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
     return 0;
 }
 
-static int hello_open(const char *path, struct fuse_file_info *fi)
+static int xwinfs_open(const char *path, struct fuse_file_info *fi)
 {
     Window w;
     char title[256];
@@ -146,7 +146,7 @@ static int hello_open(const char *path, struct fuse_file_info *fi)
     return 0;
 }
 
-static int hello_read(const char *path, char *buf, size_t size, off_t offset,
+static int xwinfs_read(const char *path, char *buf, size_t size, off_t offset,
                       struct fuse_file_info *fi)
 {
     size_t len;
@@ -171,11 +171,11 @@ static int hello_read(const char *path, char *buf, size_t size, off_t offset,
     return size;
 }
 
-static struct fuse_operations hello_oper = {
-    .getattr   = hello_getattr,
-    .readdir = hello_readdir,
-    .open   = hello_open,
-    .read   = hello_read,
+static struct fuse_operations xwinfs_oper = {
+    .getattr   = xwinfs_getattr,
+    .readdir = xwinfs_readdir,
+    .open   = xwinfs_open,
+    .read   = xwinfs_read,
 };
 
 int main(int argc, char *argv[])
@@ -188,6 +188,6 @@ int main(int argc, char *argv[])
 	    root = RootWindow(dpy, screen);
 	    initatoms();
 
-	    return fuse_main(argc, argv, &hello_oper, NULL);
+	    return fuse_main(argc, argv, &xwinfs_oper, NULL);
 }
 
