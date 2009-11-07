@@ -3,7 +3,7 @@ enum { ClientList, ActiveWindow, WindowDesk,
       ClientListStacking, WindowOpacity, WindowType,
       WindowTypeDesk, WindowTypeDock, WindowTypeDialog, StrutPartial, ESelTags,
       WindowName, WmName, WindowState, WindowStateFs, WindowStateModal, WindowStateHidden,
-      Utf8String, TypeString, TypeWindow, TypeCardinal, TypeInteger, TypeAtom, TypeWMState, Supported, NATOMS };
+      Utf8String, TypeString, TypeWindow, TypeCardinal, TypeInteger, TypeAtom, TypeWMState, TypeWMHints, Supported, NATOMS };
 
 Atom atoms[NATOMS];
 
@@ -38,6 +38,7 @@ char* atomnames[NATOMS][1] = {
     { "INTEGER" },
     { "ATOM" },
     { "WM_STATE" },
+    { "WM_HINTS" },
     { "_NET_SUPPORTED" },
 };
 
@@ -73,6 +74,7 @@ atom2string(Window w, Atom a, int *n) {
         Atom type;
 	Window *l;
 	Atom *al;
+	XWMHints *wmh;
 	char **s;
 	unsigned int *c;
         char *ret = malloc(256);
@@ -109,6 +111,14 @@ atom2string(Window w, Atom a, int *n) {
 		sprintf(ret, "Iconic");
 	    else if((long)*p == WithdrawnState)
 		sprintf(ret, "Withdrawn");
+	}
+	else if(type == atoms[TypeWMHints]) {
+	    wmh = (XWMHints*)p;
+	    sprintf(ret, "InputHint: 0x%x\nStateHint: 0x%x\nIconPixmapHint: 0x%x\n"
+		    "IconWindowHint: 0x%x\nIconMaskHint: 0x%x\nWindowGroupHint: 0x%x\n"
+		    "XUrgencyHint: 0x%x\nInput: 0x%x", wmh->flags & InputHint,
+		    wmh->flags & StateHint, wmh->flags & IconPixmapHint, wmh->flags & IconWindowHint,
+		    wmh->flags & IconMaskHint, wmh->flags & WindowGroupHint, wmh->flags & XUrgencyHint, wmh->input);
 	}
 	*n = strlen(ret);
 	return ret;
