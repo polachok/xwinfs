@@ -3,7 +3,7 @@ enum { ClientList, ActiveWindow, WindowDesk,
       ClientListStacking, WindowOpacity, WindowType,
       WindowTypeDesk, WindowTypeDock, WindowTypeDialog, StrutPartial, ESelTags,
       WindowName, WmName, WindowState, WindowStateFs, WindowStateModal, WindowStateHidden,
-      Utf8String, TypeString, TypeWindow, TypeCardinal, TypeInteger, TypeAtom, TypeWMState, TypeWMHints, Supported, NATOMS };
+      Utf8String, TypeString, TypeWindow, TypeCardinal, TypeInteger, TypeAtom, TypeWMState, TypeWMHints, TypeWMSizeHints, Supported, NATOMS };
 
 Atom atoms[NATOMS];
 
@@ -39,6 +39,7 @@ char* atomnames[NATOMS][1] = {
     { "ATOM" },
     { "WM_STATE" },
     { "WM_HINTS" },
+    { "WM_SIZE_HINTS" },
     { "_NET_SUPPORTED" },
 };
 
@@ -75,6 +76,7 @@ atom2string(Window w, Atom a, int *n) {
 	Window *l;
 	Atom *al;
 	XWMHints *wmh;
+	XSizeHints *size;
 	char **s;
 	unsigned int *c;
         char *ret = malloc(256);
@@ -119,6 +121,21 @@ atom2string(Window w, Atom a, int *n) {
 		    "XUrgencyHint: 0x%x\nInput: 0x%x", wmh->flags & InputHint,
 		    wmh->flags & StateHint, wmh->flags & IconPixmapHint, wmh->flags & IconWindowHint,
 		    wmh->flags & IconMaskHint, wmh->flags & WindowGroupHint, wmh->flags & XUrgencyHint, wmh->input);
+	}
+	else if(type == atoms[TypeWMSizeHints]) {
+	    size = (XSizeHints*)p;
+	    if(size->flags & PBaseSize) {
+		    sprintf(ret+strlen(ret), "Base size: %dx%d\n", size->base_width, size->base_height);
+	    }
+	    if(size->flags & PMinSize) {
+		    sprintf(ret+strlen(ret), "Minimal size: %dx%d\n", size->min_width, size->min_height);
+	    }
+	    if(size->flags & PResizeInc) {
+		    sprintf(ret+strlen(ret), "Resize increment: %dx%d\n", size->width_inc, size->height_inc);
+	    }
+	    if(size->flags & PMaxSize) {
+		    sprintf(ret+strlen(ret), "Maximum size: %dx%d\n", size->max_width, size->max_height);
+	    }
 	}
 	*n = strlen(ret);
 	return ret;
