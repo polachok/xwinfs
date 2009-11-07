@@ -44,10 +44,12 @@ const char *winfs_dirname(const char *path)
 
     pend = strrchr(path, '/');
     pstart = strchr(path, '/');
+    if(pend == NULL || pstart == NULL || pend == pstart)
+	return "/";
     p = malloc(pend-pstart);
     bzero(p, pend-pstart);
     strncpy(p, pstart, pend-pstart);
-    fprintf(stderr, ">>%s<<<\n", p);
+    fprintf(stderr, "((%s)) >>%s<<<\n",path, p);
     if (p != NULL)
         return p + 1;
     else
@@ -195,18 +197,20 @@ static int xwinfs_read(const char *path, char *buf, size_t size, off_t offset,
     char data[256];
     Window w;
     Atom a;
+    int n;
     char *name, *parent;
 
     bzero(data, 256);
     name = winfs_basename(path);
     parent = winfs_basename(winfs_dirname(path));
-    if (w = valid_client(parent)) {
+    if ((w = valid_client(parent))) {
 	if(strcmp(name, "name") == 0) {
 	    if(!gettextprop(w, atoms[WindowName], data, sizeof data))
 		gettextprop(w, atoms[WmName], data, sizeof data);
 	} else {
 	    a = XInternAtom(dpy, name, False);
-	    sprintf(data, "%s", atom2string(w, a, &size));
+	    sprintf(data, "%s", atom2string(w, a, &n));
+	    size = n;
 	}
     } else
 	return -ENOENT;
