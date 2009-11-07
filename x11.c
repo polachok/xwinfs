@@ -46,9 +46,6 @@ initatoms(void) {
     for(i = 0; i < NATOMS; i++){
         atoms[i] = XInternAtom(dpy, atomnames[i][0], False);
     }   
-    XChangeProperty(dpy, root,                                                                                                                                       
-                    atoms[Supported], XA_ATOM, 32,
-                    PropModeReplace, (unsigned char *) atoms, NATOMS);
 }
 
 void*
@@ -68,7 +65,7 @@ getatom(Window w, Atom atom, unsigned long *n) {
 }
 
 char*
-atom2string(Window w, Atom a, unsigned long *n) {
+atom2string(Window w, Atom a, int *n) {
         int format, status, i;
         unsigned char *p = NULL;
         unsigned long tn, extra;
@@ -82,9 +79,7 @@ atom2string(Window w, Atom a, unsigned long *n) {
                         &type, &format, &tn, &extra, (unsigned char **)&p);
         if(status == BadWindow)
                 return NULL;
-        if (n != NULL)
-            *n = tn;
-        else 
+        if (tn == 0)
             return NULL;
         if(type == atoms[TypeString]) {
 	    sprintf(ret, "%s", p);
@@ -103,6 +98,7 @@ atom2string(Window w, Atom a, unsigned long *n) {
             for(i = 0; i < tn && strlen(ret) < 256; i++)
                 sprintf(ret+strlen(ret), "%s ",  XGetAtomName(dpy, al[i]));
 	}
+	*n = strlen(ret);
 	return ret;
 }
 
