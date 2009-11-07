@@ -1,12 +1,11 @@
-
 enum { ClientList, ActiveWindow, WindowDesk,
       NumberOfDesk, DeskNames, CurDesk, ELayout,
       ClientListStacking, WindowOpacity, WindowType,
       WindowTypeDesk, WindowTypeDock, WindowTypeDialog, StrutPartial, ESelTags,
       WindowName, WmName, WindowState, WindowStateFs, WindowStateModal, WindowStateHidden,
-      Utf8String, Supported, NATOMS };
+      Utf8String, TypeString, TypeWindow, TypeCardinal, TypeInteger, TypeAtom, Supported, NATOMS };
 
-Atom atom[NATOMS];
+Atom atoms[NATOMS];
 
 #define LASTAtom ClientListStacking
 
@@ -33,6 +32,11 @@ char* atomnames[NATOMS][1] = {
     { "_NET_WM_STATE_MODAL" },
     { "_NET_WM_STATE_HIDDEN" },
     { "UTF8_STRING" },
+    { "STRING" },
+    { "WINDOW" },
+    { "CARDINAL" },
+    { "INTEGER" },
+    { "ATOM" },
     { "_NET_SUPPORTED" },
 };
 
@@ -40,11 +44,11 @@ void
 initatoms(void) {
     int i;
     for(i = 0; i < NATOMS; i++){
-        atom[i] = XInternAtom(dpy, atomnames[i][0], False);
+        atoms[i] = XInternAtom(dpy, atomnames[i][0], False);
     }   
     XChangeProperty(dpy, root,                                                                                                                                       
-                    atom[Supported], XA_ATOM, 32,
-                    PropModeReplace, (unsigned char *) atom, NATOMS);
+                    atoms[Supported], XA_ATOM, 32,
+                    PropModeReplace, (unsigned char *) atoms, NATOMS);
 }
 
 void*
@@ -63,6 +67,44 @@ getatom(Window w, Atom atom, unsigned long *n) {
         return p;
 }
 
+char*
+atom2string(Window w, Atom a, unsigned long *n) {
+        int format, status, i;
+        unsigned char *p = NULL;
+        unsigned long tn, extra;
+        Atom type;
+	Window *l;
+	Atom *al;
+        char *ret = malloc(256);
+        bzero(ret, 256);
+
+        status = XGetWindowProperty(dpy, w, a, 0L, 64L, False, AnyPropertyType,
+                        &type, &format, &tn, &extra, (unsigned char **)&p);
+        if(status == BadWindow)
+                return NULL;
+        if (n != NULL)
+            *n = tn;
+        else 
+            return NULL;
+        if(type == atoms[TypeString]) {
+	    sprintf(ret, "%s", p);
+	}
+        else if(type == atoms[TypeWindow]) {
+	    l = (Window*)p;
+            for(i = 0; i < tn; i++)
+                sprintf(ret+strlen(ret), "0x%x ", l[i]);
+	}
+        else if(type == atoms[TypeCardinal]) {
+            for(i = 0; i < tn; i++)
+                sprintf(ret+strlen(ret), "%d ", p[i]);
+	}
+	else if(type == atoms[TypeAtom]) {
+	    al = (Atom*)p;
+            for(i = 0; i < tn && strlen(ret) < 256; i++)
+                sprintf(ret+strlen(ret), "%s ",  XGetAtomName(dpy, al[i]));
+	}
+	return ret;
+}
 
 Bool
 gettextprop(Window w, Atom atom, char *text, unsigned int size) {
