@@ -183,7 +183,7 @@ int main(int argc, char *argv[])
             setlocale(LC_CTYPE, "");
 	    dpy = XOpenDisplay(0);
 	    if(!dpy)
-		eprint("ourico: cannot open display\n");
+		eprint("xwinfs: cannot open display\n");
 	    screen = DefaultScreen(dpy);
 	    root = RootWindow(dpy, screen);
 	    initatoms();
