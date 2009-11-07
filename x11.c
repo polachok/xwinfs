@@ -73,6 +73,7 @@ atom2string(Window w, Atom a, int *n) {
         Atom type;
 	Window *l;
 	Atom *al;
+	char *c, **s;
         char *ret = malloc(256);
         bzero(ret, 256);
 
@@ -82,8 +83,8 @@ atom2string(Window w, Atom a, int *n) {
                 return NULL;
         if (tn == 0)
             return NULL;
-        if(type == atoms[TypeString]) {
-	    sprintf(ret, "%s", p);
+        if(type == atoms[TypeString] || type == atoms[Utf8String]) {
+	    gettextprop(w, a, ret, 256);
 	}
         else if(type == atoms[TypeWindow]) {
 	    l = (Window*)p;
@@ -91,8 +92,9 @@ atom2string(Window w, Atom a, int *n) {
                 sprintf(ret+strlen(ret), "0x%x ", l[i]);
 	}
         else if(type == atoms[TypeCardinal]) {
+	    c = (char*)p;
             for(i = 0; i < tn; i++)
-                sprintf(ret+strlen(ret), "%d ", p[i]);
+                sprintf(ret+strlen(ret), "%d ", c[i]);
 	}
 	else if(type == atoms[TypeAtom]) {
 	    al = (Atom*)p;
