@@ -188,11 +188,16 @@ static int xwinfs_read(const char *path, char *buf, size_t size, off_t offset,
     char title[256];
     bzero(title, 256);
     Window w;
+    Atom a;
     if(strcmp(winfs_basename(path), "name") == 0) {
 	 w = valid_client(winfs_basename(winfs_dirname(path)));
          if(!gettextprop(w, atoms[WindowName], title, sizeof title))
 		     gettextprop(w, atoms[WmName], title, sizeof title);
 	 size = 256;
+    } else
+    if (w = valid_client(winfs_basename(winfs_dirname(path)))) {
+	a = XInternAtom(dpy, winfs_basename(path), False);
+	sprintf(title, "%s", atom2string(w, a, &size));
     }
 
     len = strlen(title);
