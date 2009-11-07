@@ -20,9 +20,9 @@ int screen;
 
 #include "x11.c"
 
-const char *winfs_basename(const char *path)
+char *winfs_basename(const char *path)
 {
-    const char *p;
+    char *p;
 
     if (path == NULL)
         return NULL;
@@ -31,7 +31,7 @@ const char *winfs_basename(const char *path)
     if (p != NULL)
         return p + 1;
     else
-        return path;
+        return (char*)path;
 }
 
 const char *winfs_dirname(const char *path)
@@ -68,6 +68,10 @@ Window valid_client(const char *name);
 static int xwinfs_getattr(const char *path, struct stat *stbuf)
 {
     int res = 0;
+    char *name, *parent;
+
+    name = winfs_basename(path);
+    parent = winfs_basename(winfs_dirname(path));
     memset(stbuf, 0, sizeof(struct stat));
     if(strcmp(path, "/") == 0) {
         stbuf->st_mode = S_IFDIR | 0755;
@@ -78,10 +82,10 @@ static int xwinfs_getattr(const char *path, struct stat *stbuf)
         stbuf->st_nlink = 2;
     }
     else if(strncmp(path, clients_path, 7) == 0) {
-	if(valid_client(winfs_basename(path))) {
+	if(valid_client(name)) {
 	    stbuf->st_mode = S_IFDIR | 0755;
 	    stbuf->st_nlink = 2;
-	} else if(valid_client(winfs_basename(winfs_dirname(path)))) {
+	} else if(valid_client(parent)) {
 	    stbuf->st_mode = S_IFREG | 0444;
 	    stbuf->st_nlink = 1;
 	    stbuf->st_size = 256;
@@ -141,6 +145,9 @@ static int xwinfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 {
     (void) offset;
     (void) fi;
+    char *name;
+    
+    name = winfs_basename(path);
 
     if(strcmp(path, "/") == 0) {
 	filler(buf, ".", NULL, 0);
@@ -153,11 +160,11 @@ static int xwinfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 	list_clients(buf, filler);
     }
     else if(strncmp(path, clients_path, 7) == 0) {
-	if(!valid_client(winfs_basename(path)))
+	if(!valid_client(name))
 	    return -ENOENT;
 	filler(buf, ".", NULL, 0);
 	filler(buf, "..", NULL, 0);
-	list_props(buf, filler, valid_client(winfs_basename(path)));
+	list_props(buf, filler, valid_client(name));
     }
     else
 	return -ENOENT;
@@ -167,11 +174,11 @@ static int xwinfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 
 static int xwinfs_open(const char *path, struct fuse_file_info *fi)
 {
-    Window w;
-    char title[256];
-    bzero(title, 256);
-    if(strcmp(winfs_basename(path), "name") == 0)
-	 if(valid_client(winfs_basename(winfs_dirname(path))))
+    char *name, *parent;
+    name = winfs_basename(path);
+    parent = winfs_basename(winfs_dirname(path));
+    if(strcmp(name, "name") == 0)
+	 if(valid_client(parent))
 	     return 0;
 
     if((fi->flags & 3) != O_RDONLY)
@@ -185,26 +192,30 @@ static int xwinfs_read(const char *path, char *buf, size_t size, off_t offset,
 {
     size_t len;
     (void) fi;
-    char title[256];
-    bzero(title, 256);
+    char data[256];
     Window w;
     Atom a;
-    if(strcmp(winfs_basename(path), "name") == 0) {
-	 w = valid_client(winfs_basename(winfs_dirname(path)));
-         if(!gettextprop(w, atoms[WindowName], title, sizeof title))
-		     gettextprop(w, atoms[WmName], title, sizeof title);
-	 size = 256;
-    } else
-    if (w = valid_client(winfs_basename(winfs_dirname(path)))) {
-	a = XInternAtom(dpy, winfs_basename(path), False);
-	sprintf(title, "%s", atom2string(w, a, &size));
-    }
+    char *name, *parent;
 
-    len = strlen(title);
+    bzero(data, 256);
+    name = winfs_basename(path);
+    parent = winfs_basename(winfs_dirname(path));
+    if (w = valid_client(parent)) {
+	if(strcmp(name, "name") == 0) {
+	    if(!gettextprop(w, atoms[WindowName], data, sizeof data))
+		gettextprop(w, atoms[WmName], data, sizeof data);
+	} else {
+	    a = XInternAtom(dpy, name, False);
+	    sprintf(data, "%s", atom2string(w, a, &size));
+	}
+    } else
+	return -ENOENT;
+
+    len = strlen(data);
     if (offset < len) {
         if (offset + size > len)
             size = len - offset;
-        memcpy(buf, title + offset, size);
+        memcpy(buf, data + offset, size);
     } else
         size = 0;
 
